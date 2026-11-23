@@ -1,0 +1,275 @@
+#!/usr/bin/env bash
+# home-doctor — deterministic health checks for the generic engine + project wiring.
+# No external dependencies (bash, grep, sed, git only). Exit code 0 = all checks pass.
+set -uo pipefail
+cd "$(dirname "$0")/.." || exit 2
+
+FAIL=0
+pass() { printf '  \033[32mPASS\033[0m %s\n' "$1"; }
+fail() { printf '  \033[31mFAIL\033[0m %s\n' "$1"; FAIL=1; }
+info() { printf '       %s\n' "$1"; }
+section() { printf '\n== %s\n' "$1"; }
+
+# Mattpocock main set: 27 skills. The 12 General extras are deliberately NOT vendored.
+VENDORED_SKILLS="ask-matt code-review codebase-design diagnosing-bugs \
+domain-modeling grill-me grill-with-docs grilling handoff implement \
+implement-spec improve-codebase-architecture pr prototype research retro \
+setup-matt-pocock-skills tdd teach to-questionnaire to-spec to-tickets \
+triage wait-what wayfinder wizard writing-for-agents"
+VENDORED_COUNT=27
+
+GENERAL_SKILLS="chief-of-staff claude-handoff loop-me setup-ts-deep-modules \
+software-factory writing-beats writing-fragments writing-shape \
+git-guardrails-claude-code migrate-to-shoehorn scaffold-exercises setup-pre-commit"
+
+PRIVATE_SKILLS="project-setup jira-sync jira-story-draft qa-test-run release-checklist wiki-ingest"
+
+# ---------------------------------------------------------------- 1. lockfile
+section "1. Lockfile & Skills"
+
+if [ -e vendor.lock.json ]; then
+  fail "vendor.lock.json exists; skills-lock.json must be the only lock file"
+else
+  pass "no redundant vendor.lock.json"
+fi
+
+if [ ! -s skills-lock.json ]; then
+  fail "skills-lock.json missing or empty"
+else
+  LOCK_COUNT=$(tr -d '\r' < skills-lock.json | sed -n 's/^    "\([a-z0-9][a-z0-9-]*\)": {$/\1/p' | wc -l | tr -d ' ')
+  if [ "$LOCK_COUNT" -ne "$VENDORED_COUNT" ]; then
+    fail "skills-lock.json lists $LOCK_COUNT skills, expected $VENDORED_COUNT"
+    info "locked: $(tr -d '\r' < skills-lock.json | sed -n 's/^    "\([a-z0-9][a-z0-9-]*\)": {$/\1/p' | tr '\n' ' ')"
+  else
+    pass "skills-lock.json pins $LOCK_COUNT vendored skills"
+  fi
+  missing_lock=""
+  for name in $VENDORED_SKILLS; do
+    tr -d '\r' < skills-lock.json | grep -q "^    \"$name\": {$" || missing_lock="$missing_lock $name"
+  done
+  if [ -n "$missing_lock" ]; then
+    fail "skills-lock.json is missing:$missing_lock"
+  else
+    pass "every one of the $VENDORED_COUNT main-set skills is pinned in the lock"
+  fi
+  if tr -d '\r' < skills-lock.json | grep -q '"commit": "[0-9a-f]\{40\}"'; then
+    pass "skills-lock.json carries a pinned commit SHA"
+  else
+    fail "skills-lock.json has no 40-char commit SHA"
+  fi
+  info "hash re-computation is not reproducible (computedHash is a folder digest); existence + pinned commit is the enforceable check"
+fi
+
+if grep -q '"\.agents/skills"' opencode.json; then
+  pass "opencode.json registers .agents/skills as a project skill path"
+else
+  fail "opencode.json must set skills.paths to include \".agents/skills\" (otherwise OPENCODE_DISABLE_EXTERNAL_SKILLS=1 disables the local skills too)"
+fi
+
+for name in $VENDORED_SKILLS; do
+  file=".agents/skills/$name/SKILL.md"
+  if [ -s "$file" ]; then
+    pass "vendored skill $name"
+  else
+    fail "vendored skill $name -> $file missing or empty"
+  fi
+done
+
+for name in $PRIVATE_SKILLS; do
+  file=".agents/skills/$name/SKILL.md"
+  if [ -s "$file" ]; then
+    pass "private skill $name"
+  else
+    fail "private skill $name -> $file missing or empty"
+  fi
+done
+
+present_general=""
+for name in $GENERAL_SKILLS; do
+  [ -e ".agents/skills/$name" ] && present_general="$present_general $name"
+done
+if [ -n "$present_general" ]; then
+  fail "General skills must not be vendored:$present_general"
+else
+  pass "no General skills vendored (main set only)"
+fi
+
+# ------------------------------------------------------------ 2. anti-bespoke
+section "2. Anti-Bespoke (engine must stay project-agnostic)"
+
+# shellcheck disable=SC2206
+AGENT_FILES=(.opencode/agents/*.md)
+PRIVATE_FILES=""
+for name in $PRIVATE_SKILLS; do
+  PRIVATE_FILES="$PRIVATE_FILES .agents/skills/$name/SKILL.md"
+done
+# Upstream-pinned vendored skills are scanned for project coupling only.
+# shellcheck disable=SC2206
+ENGINE_FILES=("${AGENT_FILES[@]}" .agents/skills/*/SKILL.md)
+# Language/toolchain coupling is checked on what we author ourselves.
+# shellcheck disable=SC2206
+GENERIC_FILES=("${AGENT_FILES[@]}" $PRIVATE_FILES)
+
+scan() { # scan <pattern> <label> <files...>
+  local pattern="$1" label="$2"
+  shift 2
+  local hits
+  hits=$(grep -nE "$pattern" "$@" 2>/dev/null)
+  if [ -n "$hits" ]; then
+    fail "$label (/$pattern/)"
+    printf '%s\n' "$hits" | sed 's/^/         /'
+  else
+    pass "$label"
+  fi
+}
+
+# Project-coupled tokens: forbidden everywhere in the engine (roles + all skills).
+scan 'demo-'     "no project repo names"  "${ENGINE_FILES[@]}"
+scan 'SCRUM'     "no Jira project key"    "${ENGINE_FILES[@]}"
+scan '1808[123]' "no project ports"       "${ENGINE_FILES[@]}"
+
+# Language/toolchain tokens: forbidden in roles + private skills.
+scan 'pom\.xml'         "no build file names"   "${GENERIC_FILES[@]}"
+scan '\bmvn\b'          "no Maven CLI"          "${GENERIC_FILES[@]}"
+scan '\bpytest\b'       "no pytest CLI"         "${GENERIC_FILES[@]}"
+scan '\bnpm\b'          "no npm CLI"            "${GENERIC_FILES[@]}"
+scan '\bMaven\b'        "no Maven wording"      "${GENERIC_FILES[@]}"
+scan '\bGradle\b'       "no Gradle wording"     "${GENERIC_FILES[@]}"
+scan '\bJava\b'         "no Java wording"       "${GENERIC_FILES[@]}"
+scan 'package\.json'    "no Node manifest name" "${GENERIC_FILES[@]}"
+scan 'build\.gradle'    "no Gradle file name"   "${GENERIC_FILES[@]}"
+scan 'pyproject\.toml'  "no Python file name"   "${GENERIC_FILES[@]}"
+scan 'go\.mod'          "no Go file name"       "${GENERIC_FILES[@]}"
+
+# ------------------------------------------------------------- 3. role safety
+section "3. Role safety (V1 syntax, no hardcoded model)"
+
+for file in "${AGENT_FILES[@]}"; do
+  name=$(basename "$file" .md)
+  if tr -d '\r' < "$file" | grep -qE '^mode: (primary|subagent|all)$'; then
+    pass "$name declares an explicit mode"
+  else
+    fail "$name has no explicit 'mode: primary|subagent|all'"
+  fi
+  if tr -d '\r' < "$file" | grep -qE '^(model|temperature|top_p):'; then
+    fail "$name hardcodes model/temperature/top_p"
+    tr -d '\r' < "$file" | grep -nE '^(model|temperature|top_p):' | sed 's/^/         /'
+  else
+    pass "$name inherits model from opencode.json"
+  fi
+  if tr -d '\r' < "$file" | grep -qE '^    "\*": deny$'; then
+    pass "$name pins the skill whitelist with \"*\": deny"
+  else
+    fail "$name must open its skill whitelist with \"*\": deny"
+  fi
+done
+
+for leaf in ba reviewer librarian; do
+  if tr -d '\r' < ".opencode/agents/$leaf.md" | grep -qE '^  task: deny$'; then
+    pass "$leaf is a leaf role (task: deny)"
+  else
+    fail "$leaf must declare 'task: deny' under permission:"
+  fi
+done
+
+for name in setup-matt-pocock-skills; do
+  if grep -q "\"$name\": allow" .opencode/agents/*.md; then
+    fail "$name must stay locked but not granted to any role (private /project-setup supersedes it)"
+  else
+    pass "$name is locked but not granted to any role"
+  fi
+done
+
+# librarian may land the wiki Draft-PR description under .scratch/
+if grep -qF '".scratch/**/wiki-pr-description.md": allow' .opencode/agents/librarian.md; then
+  pass "librarian may write .scratch/**/wiki-pr-description.md"
+else
+  fail "librarian.md must allow edit of \".scratch/**/wiki-pr-description.md\" (Phase 1 wiki PR fallback)"
+fi
+
+# --------------------------------------------------------------- 4. workspace
+section "4. Workspace Root Folder"
+
+for line in '.scratch/' 'repos/' '.qmd/'; do
+  if tr -d '\r' < .gitignore | grep -qxF "$line"; then
+    pass ".gitignore ignores $line"
+  else
+    fail ".gitignore must contain the line: $line"
+  fi
+done
+
+for line in '!.scratch/' '!repos/'; do
+  if tr -d '\r' < .ignore | grep -qxF "$line"; then
+    pass ".ignore unignores $line"
+  else
+    fail ".ignore must contain the line: $line"
+  fi
+done
+
+if [ -s CODING_STANDARDS.md ]; then
+  pass "CODING_STANDARDS.md exists for review-time Standards checks & /retro"
+else
+  fail "CODING_STANDARDS.md is missing or empty"
+fi
+
+if grep -q '"CODING_STANDARDS\.md"' opencode.json; then
+  fail "CODING_STANDARDS.md must NOT be in opencode.json global instructions (context separation: read during /code-review and /retro, not implementation)"
+else
+  pass "CODING_STANDARDS.md is kept out of global instructions (saves implementer context)"
+fi
+
+if [ ! -d repos ]; then
+  fail "repos/ directory is missing"
+else
+  REPO_COUNT=0
+  for dir in repos/*/; do
+    [ -d "$dir" ] || continue
+    name=$(basename "$dir")
+    case "$name" in .*) continue ;; esac
+    REPO_COUNT=$((REPO_COUNT + 1))
+    if [ ! -e "$dir/.git" ]; then
+      fail "repos/$name is not an independent Git repo (.git missing)"
+      continue
+    fi
+    dirty=$(git -C "$dir" status --porcelain 2>/dev/null)
+    if [ -n "$dirty" ]; then
+      fail "repos/$name has uncommitted changes"
+      printf '%s\n' "$dirty" | sed 's/^/         /'
+    else
+      pass "repos/$name is a clean independent Git repo"
+    fi
+  done
+  if [ "$REPO_COUNT" -eq 0 ]; then
+    fail "repos/ contains no sub-repos"
+  fi
+fi
+
+# qmd index must live in home/.qmd/ (every role has Cwd = home/), never in a sub-repo
+if [ -d repos/team-wiki ]; then
+  if [ -f .qmd/index.yml ] && [ -f .qmd/index.sqlite ]; then
+    pass "home/.qmd holds the qmd index (index.yml + index.sqlite)"
+  else
+    fail "home/.qmd/index.yml or index.sqlite is missing (run 'qmd init' + 'qmd update' from home/)"
+  fi
+  for noise in index.md log.md README.md; do
+    if grep -qF -- "- $noise" .qmd/index.yml 2>/dev/null; then
+      pass "qmd ignore list excludes $noise"
+    else
+      fail "home/.qmd/index.yml must ignore $noise (navigation/audit pages dilute BM25 IDF)"
+    fi
+  done
+  if [ -e repos/team-wiki/.qmd ]; then
+    fail "repos/team-wiki/.qmd must not exist (index belongs in home/.qmd/)"
+  else
+    pass "repos/team-wiki carries no local qmd index"
+  fi
+fi
+
+# ---------------------------------------------------------------- 5. verdict
+section "Result"
+if [ "$FAIL" -eq 0 ]; then
+  printf '  \033[32mALL CHECKS PASSED\033[0m\n'
+  exit 0
+fi
+printf '  \033[31mHOME-DOCTOR FAILED\033[0m\n'
+exit 1

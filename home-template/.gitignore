@@ -1,0 +1,22 @@
+# local working cache, one directory per Jira key; never committed
+.scratch/
+
+# business/test sub-repos are independent Git repos; home never tracks them
+repos/
+
+.DS_Store
+*.log
+node_modules/
+.env
+.env.*
+
+# local qmd BM25 index over repos/team-wiki; rebuilt with qmd update
+.qmd/
+
+# OpenCode CLI auto-generated plugin runtime cache inside .opencode/
+.opencode/node_modules/
+.opencode/package.json
+.opencode/package-lock.json
+.opencode/bun.lock
+.opencode/.gitignore
+

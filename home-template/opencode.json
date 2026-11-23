@@ -1,0 +1,55 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "deepseek/deepseek-v4-pro",
+  "small_model": "deepseek/deepseek-flash",
+  "agent": {
+    "pm": { "model": "deepseek/deepseek-v4-pro" },
+    "ba": { "model": "deepseek/deepseek-v4-pro" },
+    "architect": { "model": "deepseek/deepseek-v4-pro" },
+    "implementer": { "model": "deepseek/deepseek-v4-pro" },
+    "qa": { "model": "deepseek/deepseek-v4-pro" },
+    "reviewer": { "model": "deepseek/deepseek-v4-pro" },
+    "librarian": { "model": "deepseek/deepseek-flash" }
+  },
+  "instructions": [
+    "AGENTS.md",
+    "docs/agents/*.md"
+  ],
+  "mcp": {
+    "atlassian": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "mcp-atlassian",
+        "--jira-projects-filter",
+        "YOUR_JIRA_KEY",
+        "--enabled-tools",
+        "jira_get_issue,jira_search,jira_get_project_issues,jira_get_transitions,jira_get_all_projects,jira_get_project_issue_types,jira_get_create_fields,jira_create_issue,jira_update_issue,jira_add_comment,jira_edit_comment,jira_transition_issue,jira_create_issue_link,jira_link_to_epic"
+      ],
+      "enabled": true
+    }
+  },
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "git -C repos/* status*": "allow",
+      "git -C repos/* diff*": "allow",
+      "git -C repos/* log*": "allow",
+      "./scripts/home-doctor*": "allow"
+    },
+    "atlassian_*": "deny",
+    "atlassian_jira_get_*": "allow",
+    "atlassian_jira_search": "allow",
+    "atlassian_jira_create_*": "ask",
+    "atlassian_jira_update_*": "ask",
+    "atlassian_jira_add_*": "ask",
+    "atlassian_jira_edit_*": "ask",
+    "atlassian_jira_transition_*": "ask",
+    "atlassian_jira_link_*": "ask"
+  },
+  "skills": {
+    "paths": [
+      ".agents/skills"
+    ]
+  }
+}

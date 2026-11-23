@@ -1,0 +1,4 @@
+# Enforce LF line endings so python frontmatter parser (text.startswith('---\n')) and wiki-check work identically on Windows, macOS, and Linux
+* text=auto eol=lf
+scripts/* text eol=lf
+*.md text eol=lf

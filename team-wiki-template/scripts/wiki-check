@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Lint the wiki: frontmatter, links, orphan pages. --fix-index rebuilds index.md."""
+
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+GENERATED = {"index.md", "log.md", "README.md"}
+REQUIRED = ("title", "type", "status", "updated", "sources")
+LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+SKIP_DIRS = {".git", "node_modules"}
+
+def pages():
+    return sorted(p for p in ROOT.rglob("*.md")
+                  if not SKIP_DIRS & set(p.parts) and p.name not in GENERATED)
+
+def frontmatter(path):
+    text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    if not text.startswith("---\n") or (end := text.find("\n---", 4)) < 0:
+        return None
+    meta = {}
+    for line in text[4:end].splitlines():
+        if ":" in line:
+            key, value = line.split(":", 1)
+            meta[key.strip()] = value.strip()
+    return meta
+
+def links(path):
+    """(raw link, resolved path) per relative link; resolved is None if external."""
+    found = []
+    for raw in LINK.findall(path.read_text(encoding="utf-8")):
+        clean = raw.strip().split("#")[0].strip()
+        if not clean:
+            continue
+        external = clean.startswith(("http://", "https://", "mailto:"))
+        found.append((raw, None if external else (path.parent / clean.lstrip("/")).resolve()))
+    return found
+
+def lint():
+    errors, refs = [], {}
+    for page in pages():
+        rel = page.relative_to(ROOT)
+        meta = frontmatter(page)
+        if meta is None:
+            errors.append(f"{rel}: missing YAML frontmatter block")
+        else:
+            missing = [k for k in REQUIRED if not meta.get(k)]
+            if missing:
+                errors.append(f"{rel}: frontmatter missing {', '.join(missing)}")
+        for raw, resolved in links(page):
+            if resolved is None:
+                continue
+            if not resolved.exists():
+                errors.append(f"{rel}: broken link -> {raw}")
+            elif resolved != page.resolve():
+                refs.setdefault(resolved, set()).add(page)
+    for page in pages():
+        if not refs.get(page.resolve()):
+            errors.append(f"{page.relative_to(ROOT)}: orphan page (no other page links to it)")
+    return errors
+
+def write_index():
+    rows = []
+    for page in pages():
+        meta = frontmatter(page) or {}
+        rows.append((meta.get("type") or "page", meta.get("title") or page.stem,
+                     page.relative_to(ROOT).as_posix()))
+    lines = [
+        "---", "title: 团队知识库索引", "type: index", "status: generated",
+        "updated: auto", "sources: [scripts/wiki-check]", "---", "",
+        "# 团队知识库索引", "",
+        "> 由 `scripts/wiki-check --fix-index` 生成，请勿手改。", "",
+        "| 类型 | 页面 |", "|---|---|",
+    ]
+    lines += [f"| {kind} | [{title}]({rel}) |" for kind, title, rel in sorted(rows)]
+    (ROOT / "index.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"PASS index.md rebuilt with {len(rows)} pages")
+
+def main():
+    errors = lint()
+    if "--fix-index" in sys.argv[1:] and not errors:
+        write_index()
+    for error in dict.fromkeys(errors):
+        print(f"FAIL {error}")
+    if errors:
+        print(f"\n{len(errors)} problem(s); index.md not rebuilt")
+        return 1
+    print(f"PASS {len(pages())} pages: frontmatter, links and backlinks all good")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

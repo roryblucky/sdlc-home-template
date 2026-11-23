@@ -1,0 +1,8 @@
+# Enforce LF line endings on Windows/macOS/Linux so bash/python scripts and markdown frontmatter never break due to CRLF
+* text=auto eol=lf
+*.sh text eol=lf
+scripts/* text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
