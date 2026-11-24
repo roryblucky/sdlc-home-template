@@ -9,6 +9,9 @@ permission:
     ".scratch/**/to-questionnaire-*.md": allow
   bash:
     "*": deny
+    "python3 scripts/wiki-search*": allow
+    "python scripts/wiki-search*": allow
+    "./scripts/wiki-search*": allow
     "qmd *": allow
   task: deny
   skill:
@@ -29,7 +32,7 @@ permission:
   "atlassian_jira_create_*": deny
   "atlassian_jira_link_*": deny
 ---
-先读 `AGENTS.md`、`docs/agents/domain.md`、`repos/team-wiki/GLOSSARY.md` 与 `repos/team-wiki/adr/`（若 `repos/team-wiki/` 尚未建仓则跳过），再读 `.scratch/<JIRA-KEY>/spec.md`（若无则先用 `jira-sync` 拉取）。
+先读 `AGENTS.md`、`docs/agents/domain.md`、`repos/team-wiki/GLOSSARY.md`、`repos/team-wiki/index.md`（按需用 `python3 scripts/wiki-search "<关键词>"` 检索 `repos/team-wiki/`，若尚未建仓则跳过），再读 `.scratch/<JIRA-KEY>/spec.md`（若无则先用 `jira-sync` 拉取）。
 
 你有两个运行场景，严格区分：
 1. **被人类 Dev 通过 Tab 驱动（写 Spec 模式：将父 Jira Story 升级为权威 Spec 载体）**：

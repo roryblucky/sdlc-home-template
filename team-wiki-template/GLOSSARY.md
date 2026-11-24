@@ -11,7 +11,14 @@ sources: [AGENTS.md]
 > 跨系统、跨微服务共享的业务名词、金额/状态口径与核心领域概念定义。
 > - **何时维护**：无需等项目结束——在 `ba` 运行 `/grill-with-docs`（内部调用 `grilling` + `domain-modeling`）追问需求时，即可边对齐边识别新术语，并在上线后由 `@librarian`（`/wiki-ingest`）合入本表。
 > - **必填三要素（Matt Pocock 规范）**：每个词条必须包含 **标准名称（中/英）**、**精确业务定义与不变量**、以及 **`_Avoid_`（禁用同义词/易混词黑名单）**，防止不同子仓、前端或邮件对同一概念发明三种名字。
-> - 相关架构决策参见 [ADR-0001](adr/0001-wiki-conventions.md) 及发布手册 [发布与回滚手册](runbooks/release-order.md)。
+> - **全库知识导航**：
+>   - 业务域契约：[核心业务领域契约模板](domains/domain-template.md)
+>   - 跨仓技术标准：[跨服务 API、错误码与数据契约规范](standards/api-and-error-codes.md)
+>   - 系统架构设计（RFC）：[跨服务架构设计文档模板](designs/design-template.md)
+>   - 架构决策记录（ADR）：[ADR-0001](adr/0001-wiki-conventions.md)
+>   - 发布与运维手册（Runbooks）：[发布与回滚手册](runbooks/release-order.md)
+>   - 故障无指责复盘（Postmortems）：[线上故障无指责复盘模板](postmortems/postmortem-template.md)
+>   - 团队全景与新人导览（Onboarding）：[团队服务全景与新人导览](onboarding/team-onboarding.md)
 
 | 标准术语（Canonical Term） | 英文标识（Identifier） | 业务定义与不变量（Definition & Invariants） | 禁用别名（`_Avoid_` — 严禁在代码/接口/文档中混用） |
 |---|---|---|---|

@@ -14,6 +14,9 @@ permission:
     "opencode.json": ask
     "docs/agents/*.md": ask
   bash:
+    "python3 scripts/wiki-search*": allow
+    "python scripts/wiki-search*": allow
+    "./scripts/wiki-search*": allow
     "qmd *": allow
     "git -C repos/* status*": allow
     "git -C repos/* diff*": allow
@@ -48,7 +51,7 @@ permission:
   "atlassian_jira_transition_*": deny
   # 继承 opencode.json 的 create_issue / create_issue_link / add_comment (均为 ask)，用于方案定稿后通过 /to-tickets 创建 Jira Subtask 并建立 Blocks 依赖边
 ---
-先读 `AGENTS.md`（子仓拓扑、共享库依赖关系、构建与发布顺序）、`.scratch/<JIRA-KEY>/spec.md`、`repos/team-wiki/GLOSSARY.md` 与 `repos/team-wiki/adr/`（若 `repos/team-wiki/` 不存在则跳过）。
+先读 `AGENTS.md`（子仓拓扑、共享库依赖关系、构建与发布顺序）、`.scratch/<JIRA-KEY>/spec.md`、`repos/team-wiki/GLOSSARY.md`、`repos/team-wiki/index.md`（按需用 `python3 scripts/wiki-search "<关键词>"` 检索 ADR / Designs / Standards，若 `repos/team-wiki/` 不存在则跳过）。
 
 1. **被人类驱动（方案设计与 `/to-spec` → `/to-tickets` 拆分子任务模式）**：
    - 若 `spec.md` 不是 `status: approved`，立刻停止并提醒先完成 Business User 确认。

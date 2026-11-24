@@ -8,8 +8,17 @@ How the engineering skills should consume this project's domain documentation.
 
 1. `AGENTS.md`：当前项目子仓拓扑、调用链、接口契约、共享公共库与构建/测试约定。
 2. `.scratch/<JIRA-KEY>/spec.md`：本单业务口径（跨人共享走 Jira 父 Story）。
-3. `repos/team-wiki/`：`GLOSSARY.md` 是长期术语的权威来源，`adr/` 是跨仓架构决策，`domains/` 是按业务域聚合的规则，`runbooks/` 是发布/回滚/排障手册。
-   - 先在 `home/` 根目录用 `qmd search "<关键词>"` 检索（本地 BM25，零 API key），再读命中页。
+3. `repos/team-wiki/`：
+   - `GLOSSARY.md`：长期术语的权威来源（含 `_Avoid_` 禁用同义词列）
+   - `index.md`：全库页面自动索引目录树
+   - `domains/`：按业务域聚合的核心规则与不变量契约
+   - `standards/`：跨仓公共技术规范（API、错误码、数据命名、安全等）
+   - `designs/`：跨服务架构设计（RFC / System Design）
+   - `adr/`：跨仓架构决策记录（Architecture Decision Records）
+   - `runbooks/`：发布/回滚/排障手册
+   - `postmortems/`：线上故障复盘与防复发项
+   - `onboarding/`：团队服务导览与环境指引
+   - **检索方式**：先读 `repos/team-wiki/index.md` 导航，或在 `home/` 根目录用 `python3 scripts/wiki-search "<关键词>"` 检索（零依赖 Python 内置 SQLite FTS5 BM25，无需安装第三方包或模型），再读命中页。
    - 知识库与 `spec.md` 冲突时：文档表述长期规则的以 wiki 为准，单次需求口径以已确认的 `spec.md` 为准，两者冲突必须在产物里显式报出并交回 `ba` 澄清。
    - 改知识库走 `@librarian` 的新分支 + Draft PR，**任何角色都不要直写 `main`**。
 

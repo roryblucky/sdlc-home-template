@@ -17,12 +17,9 @@ opencode --version
 # 2. uv (用于自动启动 Jira MCP 服务)
 uvx --version
 
-# 3. qmd (本地 Markdown 知识库毫秒级搜索引擎)
-npm install -g @tobilu/qmd
-
-# 4. GitHub CLI (用于命令行提 PR) & Python 3
+# 3. GitHub CLI (用于命令行提 PR) & Python 3 (自带 sqlite3 FTS5 本地搜索引擎，零第三方依赖)
 gh --version
-python --version   # 或 python3 --version
+python3 --version   # Windows 下为 python --version
 ```
 
 ### 1.2 配置个人 Jira 环境变量
@@ -73,7 +70,7 @@ $env:OPENCODE_DISABLE_EXTERNAL_SKILLS = "1"
 > `repos/` 目录已被主仓 `.gitignore` 忽略，里面的每个子目录都是独立的 Git 仓库，互不干扰。
 
 ```bash
-# 必装：团队共享知识库（术语、架构决策 ADR、发布手册）
+# 必装：团队共享知识库（涵盖 8 大分类：GLOSSARY 术语表、domains 领域契约、standards 跨仓规范、designs 架构设计 RFC、adr 决策记录、runbooks 运维手册、postmortems 故障复盘、onboarding 新人导览）
 git clone git@<github-host>:<org>/team-wiki.git repos/team-wiki
 
 # 按需克隆你日常开发的业务仓库（克隆几个都行）
@@ -81,25 +78,19 @@ git clone git@<github-host>:<org>/<your-repo-1>.git repos/<your-repo-1>
 git clone git@<github-host>:<org>/<your-repo-2>.git repos/<your-repo-2>
 ```
 
-#### Step 3：初始化本地知识库索引并自检
-在 `team-sdlc-home` **根目录**下执行（注意：**不要**进 `repos/team-wiki` 子目录执行）：
+#### Step 3：初始化本地知识库索引并自检（零外部依赖）
+在 `team-sdlc-home` **根目录**下执行（内置的 `scripts/wiki-search` 使用 Python 标准库 `sqlite3` FTS5 构建毫秒级 BM25 索引，**无需安装 `@tobilu/qmd`、本地 LLM 或任何第三方包**；且 `home-doctor` 也会自动检查并初始化索引）：
 
 - **macOS / Linux / Windows (Git Bash)**：
   ```bash
-  qmd init
-  qmd collection add repos/team-wiki --name team-wiki
-  python3 -c 'from pathlib import Path; p=Path(".qmd/index.yml"); t=p.read_text(); p.write_text(t.replace("pattern: \"**/*.md\"\n", "pattern: \"**/*.md\"\n    ignore:\n      - index.md\n      - log.md\n      - README.md\n") if "ignore:" not in t else t)'
-  qmd update && qmd cleanup
+  python3 scripts/wiki-search update
 
   # 运行体检脚本，看到 ALL CHECKS PASSED 即可开始工作
   ./scripts/home-doctor
   ```
 - **Windows (PowerShell)**：
   ```powershell
-  qmd init
-  qmd collection add repos/team-wiki --name team-wiki
-  python -c "from pathlib import Path; p=Path('.qmd/index.yml'); t=p.read_text(); p.write_text(t.replace('pattern: \"**/*.md\"\n', 'pattern: \"**/*.md\"\n    ignore:\n      - index.md\n      - log.md\n      - README.md\n') if 'ignore:' not in t else t)"
-  qmd update; qmd cleanup
+  .\scripts\wiki-search.ps1 update
 
   # 运行 Windows 包装体检脚本（自动调用 Git for Windows 的 bash 执行校验）
   .\scripts\home-doctor.ps1
@@ -129,12 +120,10 @@ git clone git@<github-host>:<org>/<your-repo-2>.git repos/<your-repo-2>
   git clone git@<github-host>:<org>/<service-repo>.git
   git clone git@<github-host>:<org>/<ui-repo>.git
 
-  # 4. 回到主目录初始化 qmd 索引并启动 OpenCode
+  # 4. 回到主目录构建零依赖知识库索引并启动 OpenCode
   cd ~/work/team-sdlc-home
   git init
-  qmd init && qmd collection add repos/team-wiki --name team-wiki
-  python3 -c 'from pathlib import Path; p=Path(".qmd/index.yml"); t=p.read_text(); p.write_text(t.replace("pattern: \"**/*.md\"\n", "pattern: \"**/*.md\"\n    ignore:\n      - index.md\n      - log.md\n      - README.md\n") if "ignore:" not in t else t)'
-  qmd update && qmd cleanup
+  python3 scripts/wiki-search update
   opencode
   ```
 - **Windows (PowerShell)**：
@@ -157,12 +146,10 @@ git clone git@<github-host>:<org>/<your-repo-2>.git repos/<your-repo-2>
   git clone git@<github-host>:<org>/<service-repo>.git
   git clone git@<github-host>:<org>/<ui-repo>.git
 
-  # 4. 回到主目录初始化 qmd 索引并启动 OpenCode
+  # 4. 回到主目录构建零依赖知识库索引并启动 OpenCode
   cd "$HOME\work\team-sdlc-home"
   git init
-  qmd init; qmd collection add repos/team-wiki --name team-wiki
-  python -c "from pathlib import Path; p=Path('.qmd/index.yml'); t=p.read_text(); p.write_text(t.replace('pattern: \"**/*.md\"\n', 'pattern: \"**/*.md\"\n    ignore:\n      - index.md\n      - log.md\n      - README.md\n') if 'ignore:' not in t else t)"
-  qmd update; qmd cleanup
+  .\scripts\wiki-search.ps1 update
   opencode
   ```
 
@@ -198,7 +185,7 @@ git clone git@<github-host>:<org>/<your-repo-2>.git repos/<your-repo-2>
 | **④ 按单编码（1 个 Subtask = 1 次 `/new` 新会话）与开 PR** | 输入 `/new`<br>按 `Tab` 切 **`implementer`** | `查看 PROJ-101 下的 Subtasks，领取当前第一个解锁的 Subtask，按 /implement 和 /tdd 实现代码和单测并让我看 diff` | 1. **防变笨区铁律**：每做完 **1 个** Subtask 检查 diff、跑过 Linter/单测并批准流转为 `Done` 后，**立刻输入 `/new` 开启新会话**再领下一个 Subtask；<br>2. 全部完成后输入：`运行 /release-checklist 和 /pr 生成发布检查单并创建 GitHub PR` |
 | **⑤ QA 写验收测试与跑测** | 输入 `/new`<br>按 `Tab` 切 **`qa`** | `用 jira-sync 拉取 PROJ-101 的 spec.md，在外部 Seam 上为 AC-1..N 编写验收测试，先列出用例覆盖表给我审核，确认后再跑测试` | 看测试用例覆盖全不全 → 让它跑自动化验收测试 → 全绿后批准把 `PROJ-101` 流转为 `In Review`（若测出 Bug，批准它提 Jira Bug 单，再切回 `implementer` 用 `/diagnosing-bugs` 修复） |
 | **⑥ AI 双轴评审（`Spec` + `CODING_STANDARDS.md`）+ 人工合 PR** | 输入 `/new`<br>直接呼叫 **`@reviewer`** | `@reviewer 对照 .scratch/PROJ-101/spec.md 和 CODING_STANDARDS.md 对所有修改子仓执行 /code-review，输出 review.md` | 看 `.scratch/PROJ-101/review.md` 和 GitHub PR（结合 `/pr` 生成的双向门/单向门风险评估）→ 有问题切回 `implementer` 返工 → 没问题在 GitHub 点 **Merge PR**，并把 `PROJ-101` 流转为 `Done` |
-| **⑦ 双轨沉淀：写 Wiki（`/wiki-ingest`）+ 收紧束身衣（`/retro`）** | 输入 `/new`<br>直接呼叫 **`@librarian`** | `@librarian 运行 /wiki-ingest 把 PROJ-101 新增的术语(含 _Avoid_)和 ADR 提 PR 到 repos/team-wiki；再运行 /retro 复盘本次评审问题并收紧到 CODING_STANDARDS.md 或 AGENTS.md 导航指针` | 1. 在 GitHub 合入 `team-wiki` PR（同事跑 `qmd update --pull` 同步）；<br>2. 批准 `/retro` 将本次踩坑沉淀进 `CODING_STANDARDS.md` 或 Linter 检查，让 Agent 下次不再犯同类错误 |
+| **⑦ 双轨沉淀：写 Wiki（`/wiki-ingest`）+ 收紧束身衣（`/retro`）** | 输入 `/new`<br>直接呼叫 **`@librarian`** | `@librarian 运行 /wiki-ingest 把 PROJ-101 新增的术语(含 _Avoid_)、规范或 ADR 提 PR 到 repos/team-wiki；再运行 /retro 复盘本次评审问题并收紧到 CODING_STANDARDS.md 或 AGENTS.md 导航指针` | 1. 在 GitHub 合入 `team-wiki` PR（同事跑 `python3 scripts/wiki-search update --pull` 同步）；<br>2. 批准 `/retro` 将本次踩坑沉淀进 `CODING_STANDARDS.md` 或 Linter 检查，让 Agent 下次不再犯同类错误 |
 
 ---
 
@@ -255,13 +242,16 @@ git clone git@<github-host>:<org>/<your-repo-2>.git repos/<your-repo-2>
 - **Q：别的同事更新了 `team-wiki`，我怎么同步到本地？**
   在 `team-sdlc-home` 根目录下运行：
   ```bash
-  qmd update --pull
+  python3 scripts/wiki-search update --pull
   ```
-  它会自动对 `repos/team-wiki` 执行 `git pull` 并刷新你本地的 `qmd` 搜索引擎。
+  （Windows PowerShell 下运行 `.\scripts\wiki-search.ps1 update --pull`）。它会自动对 `repos/team-wiki` 执行 `git pull` 并使用 Python 内置的 SQLite FTS5 刷新本地 BM25 索引（零外部依赖）。
+
+- **Q：我已经用旧版 setup 了一个项目，`home-doctor` 卡在 `.qmd/index.yml or index.sqlite is missing` 怎么无缝迁移？**
+  无需重装项目！只需把新版模板里的 `scripts/wiki-search`（及 `scripts/wiki-search.ps1`、`scripts/wiki-search.cmd`、`scripts/home-doctor`）拷进你现有项目的 `scripts/` 目录，然后直接运行 `./scripts/home-doctor`（或 `python3 scripts/wiki-search update`），它就会自动生成兼容的 `.qmd/index.yml` 和 `.qmd/index.sqlite`，立即满血通过 `home-doctor`。
 
 - **Q：Windows 用户跑脚本报错或找不到命令怎么办？**
-  - 在 **Git Bash** 下：直接跑 `./scripts/home-doctor` 和 `./repos/team-wiki/scripts/wiki-check`。
-  - 在 **PowerShell / CMD** 下：运行配套的 Windows 包装脚本 `.\scripts\home-doctor.ps1`（或 `.\scripts\home-doctor.cmd`）和 `.\repos\team-wiki\scripts\wiki-check.ps1`。
+  - 在 **Git Bash** 下：直接跑 `./scripts/home-doctor`、`python3 scripts/wiki-search update` 和 `./repos/team-wiki/scripts/wiki-check`。
+  - 在 **PowerShell / CMD** 下：运行配套的 Windows 包装脚本 `.\scripts\home-doctor.ps1`、`.\scripts\wiki-search.ps1` 和 `.\repos\team-wiki\scripts\wiki-check.ps1`。
 
 - **Q：为什么我在改代码时，AI 报错说没有权限改 `tests/acceptance/`？**
   这是故意设计的物理隔离：`implementer` 角色被严格禁止修改任何验收测试和 E2E 测试（防止 AI 为了让测试通过而篡改测试断言）。验收测试只能切到 `qa` 角色修改。

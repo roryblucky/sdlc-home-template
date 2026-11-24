@@ -244,16 +244,22 @@ else
   fi
 fi
 
-# qmd index must live in home/.qmd/ (every role has Cwd = home/), never in a sub-repo
+# Wiki BM25 index must live in home/.qmd/ (every role has Cwd = home/), never in a sub-repo.
+# Auto-migrate / auto-build with zero-dependency `scripts/wiki-search update` if missing.
 if [ -d repos/team-wiki ]; then
+  if [ ! -f .qmd/index.yml ] || [ ! -f .qmd/index.sqlite ] || [ -e repos/team-wiki/.qmd ]; then
+    if [ -f scripts/wiki-search ]; then
+      python3 scripts/wiki-search update >/dev/null 2>&1 || python scripts/wiki-search update >/dev/null 2>&1 || true
+    fi
+  fi
   if [ -f .qmd/index.yml ] && [ -f .qmd/index.sqlite ]; then
-    pass "home/.qmd holds the qmd index (index.yml + index.sqlite)"
+    pass "home/.qmd holds the wiki BM25 index (index.yml + index.sqlite)"
   else
-    fail "home/.qmd/index.yml or index.sqlite is missing (run 'qmd init' + 'qmd update' from home/)"
+    fail "home/.qmd/index.yml or index.sqlite is missing (run 'python3 scripts/wiki-search update' from home/)"
   fi
   for noise in index.md log.md README.md; do
     if grep -qF -- "- $noise" .qmd/index.yml 2>/dev/null; then
-      pass "qmd ignore list excludes $noise"
+      pass "wiki index ignore list excludes $noise"
     else
       fail "home/.qmd/index.yml must ignore $noise (navigation/audit pages dilute BM25 IDF)"
     fi
@@ -261,9 +267,10 @@ if [ -d repos/team-wiki ]; then
   if [ -e repos/team-wiki/.qmd ]; then
     fail "repos/team-wiki/.qmd must not exist (index belongs in home/.qmd/)"
   else
-    pass "repos/team-wiki carries no local qmd index"
+    pass "repos/team-wiki carries no local .qmd index"
   fi
 fi
+
 
 # ---------------------------------------------------------------- 5. verdict
 section "Result"
