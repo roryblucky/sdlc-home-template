@@ -1,7 +1,7 @@
 # AI-SDLC Team Workspace (`home`) — Quick Start Guide
 
 这是一套面向多仓库（Multi-Repo）团队的 **AI 协同研发工作台**（支持 **macOS / Linux / Windows**，基于 [OpenCode](https://opencode.ai) + Jira + 本地知识库）。
-它内置了 **7 个岗位 AI 角色**（`pm`、`ba`、`architect`、`implementer`、`qa`、`reviewer`、`librarian`）和 **33 个研发技能**，帮助团队从「Jira 需求 → 业务规格 → 架构拆单 → 编码自测 → QA 验收 → 代码评审 → 知识沉淀」全流程人机协作。
+它内置了 **7 个岗位 AI 角色**（`pm`、`ba`、`architect`、`implementer`、`qa`、`reviewer`、`librarian`）和 **35 个研发技能**，帮助团队从「Jira 需求 → 业务规格 → 架构拆单 → 编码自测 → QA 验收 → 代码评审 → 知识沉淀」全流程人机协作。
 
 ---
 
@@ -248,6 +248,12 @@ git clone git@<github-host>:<org>/<your-repo-2>.git repos/<your-repo-2>
 
 - **Q：我已经用旧版 setup 了一个项目，`home-doctor` 卡在 `.qmd/index.yml or index.sqlite is missing` 怎么无缝迁移？**
   无需重装项目！只需把新版模板里的 `scripts/wiki-search`（及 `scripts/wiki-search.ps1`、`scripts/wiki-search.cmd`、`scripts/home-doctor`）拷进你现有项目的 `scripts/` 目录，然后直接运行 `./scripts/home-doctor`（或 `python3 scripts/wiki-search update`），它就会自动生成兼容的 `.qmd/index.yml` 和 `.qmd/index.sqlite`，立即满血通过 `home-doctor`。
+
+- **Q：工作台如何保证代码“不只是单测绿，而是真实拉起也能跑通”？（对用户透明的真机验证）**
+  普通成员**不需要记住任何额外命令**。团队负责人在初始化阶段运行 `/project-setup` 时，可按提示由 `architect` 自动盘问代码库生成项目专属的真机验证配方（`.agents/skills/verify-<app>/`）。生成后，整套闭环对日常研发与 QA **完全透明**：
+  - `implementer` 在提 PR 前会自动发现并运行匹配路径的真机验证，把动作、可见结果与持久化副作用证据落盘到 `.scratch/<JIRA-KEY>/evidence/` 并写入 PR；
+  - `qa` 验收时会自动执行真机验证；若遇合法改版导致的验证地图过时，会自动触发维护流程修正（但若发现产品缺陷，严禁修改验证地图迎合 Bug，而是正常提缺陷单）；
+  - `@reviewer` 会自动核查本次改动是否具备实跑证据。
 
 - **Q：Windows 用户跑脚本报错或找不到命令怎么办？**
   - 在 **Git Bash** 下：直接跑 `./scripts/home-doctor`、`python3 scripts/wiki-search update` 和 `./repos/team-wiki/scripts/wiki-check`。

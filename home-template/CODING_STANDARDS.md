@@ -26,7 +26,11 @@
 2. **Structure-Sensitive Tests (结构敏感测试)**:
    - Reading source files as text, asserting private method call order, or asserting internal DOM/AST structure that breaks on any valid refactor while behavior is unchanged.
 3. **Cannot-Fail / Reality-Divergent Mocks (不可能失败的假 Mock)**:
-   - Replacing critical runtime/platform constraints (e.g., DB transaction boundaries, HTTP serialization, browser/runtime lifecycle rules) with permissive fake objects that bypass the exact failure modes that happen in production.
+   - Replacing critical runtime/platform constraints (e.g., transaction boundaries, serialization, runtime lifecycle rules) with permissive fake objects that bypass the exact failure modes that happen in production.
+4. **"Able to Fail" Iron Law (没见过红灯的检查不可信)**:
+   - A test, assertion, or live verification check that you have never observed failing proves nothing. During TDD or verification setup, prove the check actually catches a broken state (Red) before trusting Green.
+5. **Anti-Tampering Guardrail (严禁篡改护栏逃避报错)**:
+   - Agents must **never** weaken compiler, typechecker, or linter configurations, nor add unjustified inline suppression directives/ignore comments to silence errors. Fix the root cause in code; if an exemption is genuinely required, it must carry an explicit reason and be surfaced for human approval.
 
 ---
 
@@ -38,9 +42,9 @@
   - Identifiers (DTO fields, API parameters, method names, error codes) must use the canonical terms in `repos/team-wiki/GLOSSARY.md` and strictly avoid the terms listed under `_Avoid_`.
 - **Single Source of Precision & Validation (`shared-lib`)**:
   - Money, decimals, rounding modes, and shared error codes must go through the canonical shared library (`shared-lib` defined in `AGENTS.md`).
-  - _Why (Incident Example)_: Hand-rolling `BigDecimal.setScale()` or ad-hoc rounding inside individual services causes 1-cent drift on `.005` boundaries across System / Processing / Experience layers.
-- **No Unconstrained `any` / Raw Types / Silent Fallbacks**:
-  - Every `any` (TypeScript), raw untyped map, or swallowed exception is a type-system leak that hides runtime 500s from compile-time checks.
+  - _Why (Incident Example)_: Hand-rolling decimal rounding or ad-hoc validation inside individual services causes 1-cent drift on boundary values across upstream and downstream layers.
+- **No Unconstrained Dynamic/Untyped Escapes or Silent Fallbacks**:
+  - Every unconstrained dynamic type escape, raw untyped map, or swallowed exception is a type-system leak that hides runtime 500s from compile-time checks.
 
 ---
 

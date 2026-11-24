@@ -83,8 +83,9 @@ description: Scan repos/* to detect languages, build tools, and test layout, the
 - `issue-tracker.md`：`.scratch/<JIRA-KEY>/` 各文件名与属主、spec frontmatter 必填项、本环境实际启用的 MCP 工具名清单、读写权限基线。
 - `triage-labels.md`：5 个规范分拣角色 → 本项目取值；L0/L1/L2 标签；五道门的状态映射。
 
-## 4. 自检与收尾
+## 4. 自检、可选真机验证脚手架与收尾
 
 1. 运行 `./scripts/home-doctor`，必须全绿；失败就按它的报错修，**不要改 `home-doctor` 来让它变绿**。
-2. 把本次生成/改动摘要（改了哪几个文件、拓扑是什么、测试命令是什么）报告给用户。
-3. 提醒用户：角色、Skills、`home-doctor` 属于通用引擎，换项目只重跑本技能；拓扑再变就再跑一次。
+2. **可选真机验证能力（对普通成员透明）**：若 `repos/*` 包含可运行的用户交互面（UI / API / CLI / 工作流服务）且 `.agents/skills/verify-*/` 尚未建立，主动询问搭建者一句：「是否需要顺便按代码库自动生成一套本地真机验证配方（`verify-<app>`），供后续研发提 PR 与 QA 验收时静默自动运行？」。若同意，直接内部执行 `create-verification-skill` 完成生成并跑通自证；若跳过，后续随时可补建。
+3. 把本次生成/改动摘要（改了哪几个文件、拓扑是什么、测试命令是什么、是否生成了 `verify-<app>`）报告给用户。
+4. 提醒用户：角色、Skills、`home-doctor` 属于通用引擎，换项目只重跑本技能；拓扑再变就再跑一次。

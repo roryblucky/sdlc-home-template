@@ -37,14 +37,14 @@ description: Scan the git diff across the affected repos/* and produce a release
 - 新增/变更的环境变量、端口、外部依赖地址：列名字 + 默认值 + 谁负责配置；端到端脚本里的端口/就绪探测若变了要同步。
 - DB migration：本项目若无持久化层，写 `不适用`；一旦引入持久化，必须回来补迁移与回滚脚本。
 
-## 4. 可观测与冒烟
+## 4. 可观测、真机实跑留证与冒烟
 
-- 各服务是否保留健康检查端点；改了路由或端口要更新端到端脚本的就绪探测。
-- 冒烟命令：用 `AGENTS.md` 第 3 节的端到端测试命令，失败即阻断发布。
+- 各服务是否保留健康检查端点；改了路由或端口要更新端到端脚本或验证技能的就绪探测。
+- **静默真机验证（自动发现，无需用户手工触发）**：扫描 `.agents/skills/verify-*/SKILL.md`。若存在匹配本次改动交互面的 `verify-<app>` 技能，在提 PR 前**自动执行**其 `Doctor → Drive（受影响路径）→ Evidence → Cleanup` 闭环，将实跑证据落盘至 `.scratch/<JIRA-KEY>/evidence/verify-<app>/`，并把证据路径与摘要填入 PR 的 `## Evidence` 章节；若项目未建立 `verify-*` 技能，按 `AGENTS.md` 第 3 节的端到端冒烟命令执行。
 - 关键日志/埋点若新增，列出字段与用途；无则写 `不适用`。
 
 ## 5. 输出
 
-- `implementer`：把检查单写入 `.scratch/<JIRA-KEY>/release-checklist.md`，并把勾选块贴进每个受影响仓的 PR 描述（含 `Jira-Key`、`home@<version>`）。
+- `implementer`：把检查单写入 `.scratch/<JIRA-KEY>/release-checklist.md`，并把勾选块及实跑证据路径贴进每个受影响仓的 PR 描述（含 `Jira-Key`、`home@<version>`）。
 - `reviewer`：你只能写 `.scratch/<JIRA-KEY>/review.md`，把本节结论作为 review 的"SRE 补位"一节写入，不要另建文件。
 - 任一条 `需处理` 未闭环 → 明确写"不得合并"，并列出闭环所需动作与责任人。

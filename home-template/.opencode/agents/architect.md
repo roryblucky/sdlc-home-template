@@ -9,6 +9,8 @@ permission:
     ".scratch/**/plan.md": allow
     ".scratch/**/adr-*.md": allow
     ".scratch/**/issues/**": allow
+    ".scratch/**/evidence/**": allow
+    ".agents/skills/verify-*/**": ask
     "AGENTS.md": ask
     "CODING_STANDARDS.md": ask
     "opencode.json": ask
@@ -29,6 +31,9 @@ permission:
   skill:
     "*": deny
     "project-setup": allow
+    "create-verification-skill": allow
+    "maintain-verification-skill": allow
+    "verify-*": allow
     "to-spec": allow
     "to-tickets": allow
     "wayfinder": allow

@@ -41,6 +41,7 @@ permission:
     "wizard": allow
     "pr": allow
     "release-checklist": allow
+    "verify-*": allow
     "jira-sync": allow
     "ask-matt": allow
     "handoff": allow
@@ -67,4 +68,4 @@ permission:
 2. 严格遵守 `AGENTS.md` 定义的自底向上构建与依赖对齐顺序（若首个 Subtask 修改了共享公共库，必须先构建/安装共享库，后续下游 Subtask 再同步依赖版本）。
 3. 你物理无权修改 `spec.md`、任何验收测试目录/文件、`repos/*-e2e/**`、`repos/team-wiki/**` 以及 `home` 底座规则；若验收测试失败且认为测试预期有误，直接向开发报告差异，严禁绕过测试。
 4. 遇到方案阻碍或极端边界口径不清时，可呼叫 `architect` / `ba` / `qa` 做 1 轮只读会诊；涉及改需求的必须停下交回人切 `ba`。
-5. 全部 Subtask 流转为 `Done` 后，运行 `/release-checklist` 与 `/pr`（PR 描述必须包含 `## Summary`、`## Evidence`、`## Merge Danger` [标注单向门/双向门与爆炸半径]、父 `Jira-Key`、关联 `Subtask-Keys` 及 `home@<version>`）。
+5. 全部 Subtask 流转为 `Done` 后，运行 `/release-checklist` 与 `/pr`（若工作台存在匹配的 `.agents/skills/verify-*/` 验证技能，`/release-checklist` 期间静默自动执行真机验证并将证据落盘至 `.scratch/<JIRA-KEY>/evidence/`；PR 描述必须包含 `## Summary`、`## Evidence` [含真机证据路径]、`## Merge Danger` [标注单向门/双向门与爆炸半径]、父 `Jira-Key`、关联 `Subtask-Keys` 及 `home@<version>`）。

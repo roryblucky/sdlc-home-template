@@ -22,7 +22,7 @@ GENERAL_SKILLS="chief-of-staff claude-handoff loop-me setup-ts-deep-modules \
 software-factory writing-beats writing-fragments writing-shape \
 git-guardrails-claude-code migrate-to-shoehorn scaffold-exercises setup-pre-commit"
 
-PRIVATE_SKILLS="project-setup jira-sync jira-story-draft qa-test-run release-checklist wiki-ingest"
+PRIVATE_SKILLS="project-setup jira-sync jira-story-draft qa-test-run release-checklist wiki-ingest create-verification-skill maintain-verification-skill"
 
 # ---------------------------------------------------------------- 1. lockfile
 section "1. Lockfile & Skills"
@@ -99,13 +99,18 @@ section "2. Anti-Bespoke (engine must stay project-agnostic)"
 
 # shellcheck disable=SC2206
 AGENT_FILES=(.opencode/agents/*.md)
+VENDORED_FILES=""
+for name in $VENDORED_SKILLS; do
+  VENDORED_FILES="$VENDORED_FILES .agents/skills/$name/SKILL.md"
+done
 PRIVATE_FILES=""
 for name in $PRIVATE_SKILLS; do
   PRIVATE_FILES="$PRIVATE_FILES .agents/skills/$name/SKILL.md"
 done
-# Upstream-pinned vendored skills are scanned for project coupling only.
+# Upstream-pinned vendored skills + engine private skills are scanned for project coupling only
+# (project-local generated .agents/skills/verify-*/ skills are intentionally excluded).
 # shellcheck disable=SC2206
-ENGINE_FILES=("${AGENT_FILES[@]}" .agents/skills/*/SKILL.md)
+ENGINE_FILES=("${AGENT_FILES[@]}" $VENDORED_FILES $PRIVATE_FILES)
 # Language/toolchain coupling is checked on what we author ourselves.
 # shellcheck disable=SC2206
 GENERIC_FILES=("${AGENT_FILES[@]}" $PRIVATE_FILES)

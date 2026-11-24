@@ -33,9 +33,12 @@ QA 只依据 `spec.md` 与公开接口契约写验收测试，**不读业务实�
 - 只用该项目测试框架与仓库已有的测试依赖，**不要为新测试引入新框架/新依赖**。
 - `AC` 模糊到无法断言 → 呼叫 `ba` 核对（最多 1 轮）；仍模糊就在 `qa-report.md` 写 `status: blocked` 并停止，不要猜。
 
-## 4. 跑测
+## 4. 跑测与静默真机验证
 
-按 `AGENTS.md` 的构建顺序，先保证共享库已构建/安装，再跑受影响层 + 端到端。只跑受影响的层即可，不必每次全量。
+1. **自动化验收套件**：按 `AGENTS.md` 的构建顺序，先保证共享库已构建/安装，再跑受影响层 + 端到端。只跑受影响的层即可，不必每次全量。
+2. **静默真机验证（自动发现，对 QA 透明）**：自动检查 `.agents/skills/verify-*/SKILL.md`。若存在匹配本次改动面的 `verify-<app>` 技能：
+   - 按其 `Launch → Doctor → Drive → Evidence → Cleanup` 执行实跑验证，把动作、可见结果与持久化副作用证据落盘到 `.scratch/<JIRA-KEY>/evidence/verify-<app>/`，并在 `qa-report.md` 附上证据路径；
+   - 若实跑失败，先严格区分原因：**产品缺陷**（按第 7 节提 Bug，**严禁改验证地图迎合 Bug**）还是**合法改版导致的验证漂移/工具缺口**（自动内部调用 `maintain-verification-skill` 流程更新 `.agents/skills/verify-<app>/**`，经 QA 批准并重新真机跑通验证）。
 
 ## 5. 产出 `.scratch/<JIRA-KEY>/qa-report.md`
 
